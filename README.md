@@ -1,2 +1,4 @@
-# PROYECTO
-11. Calculadora científica con historial — usa math, guarda cada operación en una lista y la muestra en un Listbox, exportable a CSV.
+#PROYECTO
+
+13. Juego de adivinanza con ranking de jugadores — GUI simple, guarda puntajes en JSON, ordena el ranking (top 10) con tu propio algoritmo de ordenamiento.
+
