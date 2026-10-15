@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # main_tk.py
 """
-KADB Casino Clash - Hacker Edition
+KADB Casino Clash - Hacker Edition (versión mejorada)
 - Adivina la carta secreta (1..20). Cada número es un concepto de programación.
 - 4 jugadores, 3 minutos.
 - Al acertar: la carta se voltea, anillos neón, estrellitas y confeti.
 - Terminal con log en vivo + lluvia de código en el encabezado.
 - Colección de 20 cartas que se desbloquean (estilo flashcards).
+- Ranking Top 10 guardado en JSON y ordenado con un algoritmo PROPIO
+  (insertion sort, sin usar sorted() ni list.sort()).
 """
 import json
 import math
@@ -19,6 +21,7 @@ from pathlib import Path
 APP_DATA_DIR = Path.home() / ".kadb_casino"
 APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 ARCHIVO_RANKING = APP_DATA_DIR / "ranking.json"
+TOP_N = 10
 
 # Tema oscuro neón (tipo editor de código)
 P = {
@@ -33,6 +36,8 @@ P = {
     "naranja": "#FFB454",
     "rojo": "#FF5C7A",
     "gold": "#FFD43B",
+    "silver": "#CBD5E1",
+    "bronze": "#D97706",
     "morado": "#BD93F9",
     "cyan": "#22D3EE",
     "back_border": "#1F2A44",
@@ -58,46 +63,101 @@ CARDS = [
 MONO = "Courier New"  # se ajusta al iniciar según las fuentes disponibles
 
 HEADER_W, HEADER_H = 1096, 56
-STAGE_W, STAGE_H = 360, 192
-STAGE_CARD_W, STAGE_CARD_H = 120, 148
+STAGE_W, STAGE_H = 360, 176
+STAGE_CARD_W, STAGE_CARD_H = 120, 132
 STAGE_CARD_TOP = 4
+STAGE_CY = STAGE_CARD_TOP + STAGE_CARD_H // 2  # centro vertical de la carta
+
+
+# ---------------------------------------------------------------- ordenamiento propio
+def es_mejor(a, b):
+    """True si la entrada 'a' debe ir ANTES que 'b' en el ranking.
+
+    Criterios: 1) más puntaje  2) más wins  3) menos intentos.
+    """
+    if a["puntaje"] != b["puntaje"]:
+        return a["puntaje"] > b["puntaje"]
+    if a.get("wins", 0) != b.get("wins", 0):
+        return a.get("wins", 0) > b.get("wins", 0)
+    return a["intentos"] < b["intentos"]
+
+
+def ordenar_ranking(ranking, limite=TOP_N):
+    """Algoritmo de ordenamiento propio: INSERTION SORT.
+
+    Recorre la lista y va insertando cada elemento en su posición correcta
+    dentro de la parte ya ordenada. Es estable (los empates totales conservan
+    su orden original). Complejidad: O(n²) en el peor caso, O(n) si ya está
+    ordenada; suficiente porque el ranking nunca pasa de unas pocas entradas.
+    No se usa sorted() ni list.sort().
+    """
+    lista = list(ranking)  # copia, no modifica la original
+    for i in range(1, len(lista)):
+        actual = lista[i]
+        j = i - 1
+        while j >= 0 and es_mejor(actual, lista[j]):
+            lista[j + 1] = lista[j]  # desplaza hacia la derecha
+            j -= 1
+        lista[j + 1] = actual
+    return lista[:limite]  # solo el Top N
 
 
 # ---------------------------------------------------------------- persistencia
+def _entrada_valida(d):
+    return (isinstance(d, dict)
+            and isinstance(d.get("jugador"), str)
+            and isinstance(d.get("puntaje"), int)
+            and isinstance(d.get("intentos"), int))
+
+
 def cargar_ranking():
+    """Lee el JSON; si no existe, está dañado o tiene entradas raras, las ignora."""
     try:
         with ARCHIVO_RANKING.open("r", encoding="utf-8") as f:
             datos = json.load(f)
-            if isinstance(datos, list):
-                return datos
-    except Exception:
+    except (OSError, ValueError):
         return []
-    return []
+    if not isinstance(datos, list):
+        return []
+    return [d for d in datos if _entrada_valida(d)]
 
 
 def guardar_ranking(ranking):
-    with ARCHIVO_RANKING.open("w", encoding="utf-8") as f:
+    """Escritura segura: primero a un archivo temporal y luego se reemplaza."""
+    tmp = ARCHIVO_RANKING.with_suffix(".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
         json.dump(ranking, f, ensure_ascii=False, indent=2)
-
-
-def ordenar_ranking(ranking):
-    return sorted(ranking, key=lambda x: (-x["puntaje"], -x.get("wins", 0), x["intentos"]))[:10]
+    tmp.replace(ARCHIVO_RANKING)
 
 
 def guardar_resultados_de_partida(resultados):
-    ranking = cargar_ranking()
-    next_id = max([r.get("id", 0) for r in ranking], default=0) + 1
-    for r in resultados:
-        ranking.append({"id": next_id, "jugador": r["jugador"], "puntaje": r["puntaje"],
-                        "intentos": r["intentos"], "wins": r.get("wins", 0)})
-        next_id += 1
-    ranking = ordenar_ranking(ranking)
+    """Combina los resultados nuevos con el ranking guardado.
+
+    - Ignora a quien no jugó (0 intentos) para no llenar el ranking de ceros.
+    - Guarda solo la MEJOR partida de cada jugador (por nombre).
+    - Ordena con el algoritmo propio y se queda con el Top 10.
+    """
+    nuevos = [r for r in resultados if r["intentos"] > 0]
+    mejores = {}
+    for r in cargar_ranking() + nuevos:
+        clave = r["jugador"].strip().lower()
+        entrada = {"jugador": r["jugador"].strip(), "puntaje": r["puntaje"],
+                   "intentos": r["intentos"], "wins": r.get("wins", 0)}
+        if clave not in mejores or es_mejor(entrada, mejores[clave]):
+            mejores[clave] = entrada
+    ranking = ordenar_ranking(list(mejores.values()))
+    for pos, r in enumerate(ranking, start=1):
+        r["id"] = pos
     guardar_ranking(ranking)
     return ranking
 
 
-def generar_numero():
-    return random.randint(1, len(CARDS))
+def generar_numero(anterior=None):
+    """Número secreto 1..20; evita repetir la misma carta dos rondas seguidas."""
+    n = random.randint(1, len(CARDS))
+    while anterior is not None and n == anterior:
+        n = random.randint(1, len(CARDS))
+    return n
 
 
 # ---------------------------------------------------------------- dibujo
@@ -165,7 +225,7 @@ class PlayerPanel:
                               highlightbackground=color, highlightcolor=color)
 
         top = tk.Frame(self.frame, bg=P["panel"])
-        top.pack(fill="x", padx=10, pady=(10, 4))
+        top.pack(fill="x", padx=10, pady=(8, 2))
         tk.Label(top, text=f"player_{index + 1} =", bg=P["panel"], fg=color,
                  font=(MONO, 11, "bold")).pack(side="left")
         self.entry_nombre = tk.Entry(top, width=12, font=(MONO, 11), bg=P["fondo"],
@@ -176,7 +236,7 @@ class PlayerPanel:
         self.entry_nombre.pack(side="left", padx=8, ipady=3)
 
         row = tk.Frame(self.frame, bg=P["panel"])
-        row.pack(pady=6)
+        row.pack(pady=4)
         tk.Label(row, text="guess(", bg=P["panel"], fg=P["morado"], font=(MONO, 12, "bold")).pack(side="left")
         self.entry_numero = tk.Entry(row, width=4, justify="center", font=(MONO, 14, "bold"),
                                      bg=P["fondo"], fg=P["gold"], insertbackground=P["gold"],
@@ -198,7 +258,7 @@ class PlayerPanel:
         self.lbl_stats.pack()
 
         self.lbl_stars = tk.Label(self.frame, text="", bg=P["panel"], fg=P["gold"], font=(MONO, 16, "bold"))
-        self.lbl_stars.pack(pady=(2, 8))
+        self.lbl_stars.pack(pady=(0, 6))
 
         self.reset_state()
 
@@ -267,7 +327,7 @@ class PlayerPanel:
         self.entry_numero.delete(0, tk.END)
 
     def get_name(self):
-        return self.entry_nombre.get().strip() or f"Player{self.index + 1}"
+        return self.entry_nombre.get().strip()[:12] or f"Player{self.index + 1}"
 
 
 class CasinoMultiplayer:
@@ -275,7 +335,6 @@ class CasinoMultiplayer:
         self.root = root
         self.root.title("main.py — KADB Casino Clash")
         self.root.configure(bg=P["fondo"])
-        self.root.geometry("1120x720")
         self.root.resizable(False, False)
 
         self.secret = generar_numero()
@@ -284,6 +343,7 @@ class CasinoMultiplayer:
         self.time_left = self.match_duration
         self.match_running = False
         self.collected = set()
+        self.rank_win = None
 
         self._timer_id = None
         self._fx_job = None
@@ -308,13 +368,23 @@ class CasinoMultiplayer:
         self.boot_log()
         self._blink_cursor()
         self._rain_step()
+        self._centrar_ventana()
+
+    def _centrar_ventana(self):
+        """Ajusta la ventana a su contenido y la deja arriba/centrada para que no tape la barra de tareas."""
+        self.root.update_idletasks()
+        w, h = self.root.winfo_reqwidth(), self.root.winfo_reqheight()
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        x = max(0, (sw - w) // 2)
+        y = max(0, (sh - h - 80) // 2)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     # ------------------------------------------------ construcción de la UI
     def crear_ui(self):
         # ---- encabezado estilo IDE (con lluvia de código)
         self.header = tk.Canvas(self.root, width=HEADER_W, height=HEADER_H, bg=P["header"],
                                 highlightthickness=1, highlightbackground=P["borde"])
-        self.header.pack(padx=12, pady=(10, 8))
+        self.header.pack(padx=12, pady=(6, 4))
         h = self.header
 
         for i in range(0, HEADER_W, 16):
@@ -326,8 +396,7 @@ class CasinoMultiplayer:
 
         f_title = font.Font(family=MONO, size=15, weight="bold")
         f_sub = font.Font(family=MONO, size=9)
-        tokens = [("def ", P["morado"]), ("kadb_casino_clash", P["verde"]),
-                  ("()", P["texto"]), (":", P["texto"])]
+        tokens = [("kadb_casino_clash", P["verde"]), ("()", P["texto"]), (":", P["texto"])]
         title_w = sum(f_title.measure(t) for t, _ in tokens)
         sub = "# adivina la carta de programación · 4 jugadores · 3 min · rango 1-20"
         sub_w = f_sub.measure(sub)
@@ -344,12 +413,12 @@ class CasinoMultiplayer:
         h.create_text(x, 20, text="█", anchor="w", fill=P["verde"], font=f_title, tags="cursor")
         h.create_text(90, 42, text=sub, anchor="w", fill="#6A9955", font=f_sub)
 
-        h.create_rectangle(HEADER_W - 190, 14, HEADER_W - 8, 42, fill=P["header"], outline="")
-        h.create_text(HEADER_W - 14, 28, text="● main.py  |  Python 3", anchor="e",
+        h.create_rectangle(HEADER_W - 110, 14, HEADER_W - 8, 42, fill=P["header"], outline="")
+        h.create_text(HEADER_W - 14, 28, text="● main.py", anchor="e",
                       fill=P["cyan"], font=(MONO, 10, "bold"))
 
         # ---- zona central
-        middle = tk.Frame(self.root, bg=P["fondo"], height=430)
+        middle = tk.Frame(self.root, bg=P["fondo"], height=404)
         middle.pack(fill="x", padx=12)
         middle.pack_propagate(False)
 
@@ -366,20 +435,24 @@ class CasinoMultiplayer:
 
         self.lbl_timer = tk.Label(right, text="03:00", bg=P["panel"], fg=P["verde"],
                                   font=(MONO, 24, "bold"))
-        self.lbl_timer.pack(pady=(6, 0))
+        self.lbl_timer.pack(pady=(2, 0))
         self.lbl_round = tk.Label(right, text="round = 1", bg=P["panel"], fg=P["muted"], font=(MONO, 10))
         self.lbl_round.pack()
 
         btns = tk.Frame(right, bg=P["panel"])
-        btns.pack(pady=5)
+        btns.pack(pady=3)
         self.btn_start = tk.Button(btns, text="▶ run (3 min)", command=self.start_match,
                                    bg=P["verde"], fg="#0B0F19", relief="flat",
-                                   font=(MONO, 10, "bold"), padx=10, cursor="hand2")
-        self.btn_start.pack(side="left", padx=6)
+                                   font=(MONO, 10, "bold"), padx=8, cursor="hand2")
+        self.btn_start.pack(side="left", padx=3)
         self.btn_reset = tk.Button(btns, text="↺ reset", command=self.reset_match,
                                    bg=P["borde"], fg=P["texto"], relief="flat",
-                                   font=(MONO, 10, "bold"), padx=10, cursor="hand2")
-        self.btn_reset.pack(side="left", padx=6)
+                                   font=(MONO, 10, "bold"), padx=8, cursor="hand2")
+        self.btn_reset.pack(side="left", padx=3)
+        self.btn_rank = tk.Button(btns, text="★ top10", command=self.mostrar_ranking,
+                                  bg=P["gold"], fg="#0B0F19", relief="flat",
+                                  font=(MONO, 10, "bold"), padx=8, cursor="hand2")
+        self.btn_rank.pack(side="left", padx=3)
 
         # escenario: aquí se voltea la carta y aparecen anillos, estrellas y confeti
         self.stage = tk.Canvas(right, width=STAGE_W, height=STAGE_H, bg=P["panel"], highlightthickness=0)
@@ -392,7 +465,7 @@ class CasinoMultiplayer:
                  anchor="w").pack(fill="x", padx=10)
         term_frame = tk.Frame(right, bg=P["fondo"])
         term_frame.pack(padx=8, pady=(0, 8), fill="x")
-        self.term = tk.Text(term_frame, width=48, height=5, font=(MONO, 9), bg=P["fondo"],
+        self.term = tk.Text(term_frame, width=48, height=6, font=(MONO, 9), bg=P["fondo"],
                             fg=P["texto"], bd=0, highlightthickness=0, wrap="none",
                             state="disabled", cursor="arrow", padx=6, pady=4)
         self.term.pack(side="left", fill="x", expand=True)
@@ -404,8 +477,8 @@ class CasinoMultiplayer:
         # colección de cartas
         self.lbl_collection = tk.Label(self.root, text="", bg=P["fondo"], fg=P["azul"],
                                        font=(MONO, 10, "bold"), anchor="w")
-        self.lbl_collection.pack(fill="x", padx=14, pady=(6, 2))
-        self.collect_canvas = tk.Canvas(self.root, width=1096, height=172, bg=P["fondo"], highlightthickness=0)
+        self.lbl_collection.pack(fill="x", padx=14, pady=(4, 0))
+        self.collect_canvas = tk.Canvas(self.root, width=1096, height=122, bg=P["fondo"], highlightthickness=0)
         self.collect_canvas.pack(padx=12)
 
     # ------------------------------------------------ animaciones del encabezado
@@ -446,7 +519,6 @@ class CasinoMultiplayer:
 
     def boot_log(self):
         self.clear_log()
-        self.log("$ python main.py", "cmd")
         self.log("> listo. pulsa run para empezar", "ok")
         self.actualizar_ranking_display()
 
@@ -457,9 +529,9 @@ class CasinoMultiplayer:
         for i in range(len(CARDS)):
             col, row = i % 10, i // 10
             cx = 2 + col * 110 + 50
-            top = 2 + row * 86
-            draw_card(c, cx, top, 100, 78, i, i in self.collected, "mini",
-                      glyph_size=12, label_size=7, num_size=7, badge=True)
+            top = 2 + row * 60
+            draw_card(c, cx, top, 100, 56, i, i in self.collected, "mini",
+                      glyph_size=10, label_size=6, num_size=6, badge=True)
         self.lbl_collection.config(
             text=f"colección.json  —  {len(self.collected)}/{len(CARDS)} cartas desbloqueadas")
 
@@ -537,7 +609,7 @@ class CasinoMultiplayer:
             color = random.choice(CONFETTI_COLORS)
             size = random.randint(4, 8)
             if k % 5 < 3:  # explosión desde el centro
-                x, y = STAGE_W / 2, 78
+                x, y = STAGE_W / 2, STAGE_CY
                 vx, vy = random.uniform(-6, 6), random.uniform(-9, -2)
             else:          # lluvia desde arriba
                 x, y = random.randint(0, STAGE_W), random.randint(-10, 10)
@@ -553,7 +625,7 @@ class CasinoMultiplayer:
         c = self.stage
         for _ in range(amount):
             ro = random.randint(9, 16)
-            pid = c.create_polygon(star_points(STAGE_W / 2, 78, ro, ro * 0.45), fill=P["gold"],
+            pid = c.create_polygon(star_points(STAGE_W / 2, STAGE_CY, ro, ro * 0.45), fill=P["gold"],
                                    outline="#F59E0B", tags="fx")
             ang = random.uniform(0, 2 * math.pi)
             speed = random.uniform(3, 7)
@@ -622,7 +694,7 @@ class CasinoMultiplayer:
 
             self.round_number += 1
             self.lbl_round.config(text=f"round = {self.round_number}")
-            self.secret = generar_numero()
+            self.secret = generar_numero(self.secret)
             for p in self.players:
                 p.attempts_this_round = 0
                 if p is not player:
@@ -640,6 +712,12 @@ class CasinoMultiplayer:
 
     def start_match(self):
         if self.match_running:
+            return
+        # Los nombres deben ser distintos: el ranking guarda la mejor partida por nombre.
+        nombres = [p.get_name().lower() for p in self.players]
+        if len(set(nombres)) < len(nombres):
+            messagebox.showwarning("Nombres repetidos",
+                                   "Cada jugador debe tener un nombre distinto.")
             return
         self._cancel("_timer_id")
         self.clear_fx()
@@ -680,7 +758,11 @@ class CasinoMultiplayer:
 
         resultados = [{"jugador": p.get_name(), "puntaje": p.total_score,
                        "intentos": p.total_attempts, "wins": p.wins} for p in self.players]
-        ranking = guardar_resultados_de_partida(resultados)
+        try:
+            ranking = guardar_resultados_de_partida(resultados)
+        except OSError as e:
+            ranking = ordenar_ranking(cargar_ranking())
+            messagebox.showerror("Error al guardar", f"No se pudo guardar el ranking:\n{e}")
 
         best = max((p.wins, p.total_score) for p in self.players)
         winners = [p for p in self.players if (p.wins, p.total_score) == best]
@@ -705,7 +787,11 @@ class CasinoMultiplayer:
             self.spawn_confetti(160)
             self.spawn_stars(14)
         self.set_caption(f"★ {short} ★")
-        self.root.after(1300, lambda: messagebox.showinfo("Fin de la partida", msg))
+        self.root.after(1300, lambda: self._dialogo_final(msg))
+
+    def _dialogo_final(self, msg):
+        messagebox.showinfo("Fin de la partida", msg)
+        self.mostrar_ranking()
 
     def reset_match(self):
         self._cancel("_timer_id")
@@ -724,18 +810,56 @@ class CasinoMultiplayer:
         self.redraw_collection()
         self.boot_log()
 
+    # ------------------------------------------------ ranking
     def actualizar_ranking_display(self, ranking=None):
-        """Imprime el ranking en la terminal como si fuera `cat ranking.json`."""
+        """Muestra el podio (top 3) en la terminal. El Top 10 completo está en el botón ★ top10."""
         if ranking is None:
-            ranking = cargar_ranking()
-        self.log("$ cat ranking.json", "cmd")
+            ranking = ordenar_ranking(cargar_ranking())
+        self.log("$ cat ranking.json | head -3", "cmd")
         if not ranking:
             self.log("// aún no hay puntajes", "dim")
             return
-        for i, item in enumerate(ranking, start=1):
+        for i, item in enumerate(ranking[:3], start=1):
             tag = "star" if i == 1 else "info"
             self.log(f"{i:>2}. {item['jugador'][:10]:10} {item['puntaje']:>4}p "
                      f"{item.get('wins', 0):>2}w {item['intentos']:>3}i", tag)
+
+    def mostrar_ranking(self):
+        """Ventana con el Top 10 completo (ordenado con el insertion sort propio)."""
+        if self.rank_win is not None and self.rank_win.winfo_exists():
+            self.rank_win.destroy()
+        ranking = ordenar_ranking(cargar_ranking())
+
+        win = tk.Toplevel(self.root)
+        self.rank_win = win
+        win.title("ranking.json — Top 10")
+        win.configure(bg=P["panel"])
+        win.resizable(False, False)
+        win.transient(self.root)
+
+        tk.Label(win, text="★ TOP 10 ★", bg=P["panel"], fg=P["gold"],
+                 font=(MONO, 16, "bold")).grid(row=0, column=0, columnspan=5, pady=(14, 8), padx=20)
+
+        for c, (txt, w) in enumerate((("#", 3), ("jugador", 14), ("pts", 6), ("wins", 5), ("tries", 6))):
+            tk.Label(win, text=txt, bg=P["panel"], fg=P["muted"], width=w,
+                     font=(MONO, 10, "bold")).grid(row=1, column=c, padx=4)
+
+        if not ranking:
+            tk.Label(win, text="// aún no hay puntajes. ¡Juega una partida!", bg=P["panel"],
+                     fg=P["muted"], font=(MONO, 10)).grid(row=2, column=0, columnspan=5, pady=20)
+        podio = [P["gold"], P["silver"], P["bronze"]]
+        for r, item in enumerate(ranking):
+            col = podio[r] if r < 3 else P["texto"]
+            valores = (str(r + 1), item["jugador"][:14], str(item["puntaje"]),
+                       str(item.get("wins", 0)), str(item["intentos"]))
+            for c, (val, w) in enumerate(zip(valores, (3, 14, 6, 5, 6))):
+                tk.Label(win, text=val, bg=P["panel"], fg=col, width=w,
+                         font=(MONO, 11, "bold" if r < 3 else "normal"),
+                         anchor="w" if c == 1 else "center").grid(row=r + 2, column=c, padx=4, pady=1)
+
+        tk.Button(win, text="cerrar", command=win.destroy, bg=P["borde"], fg=P["texto"],
+                  relief="flat", font=(MONO, 10, "bold"), padx=14,
+                  cursor="hand2").grid(row=14, column=0, columnspan=5, pady=14)
 
 
 def elegir_fuente_mono(root):
@@ -751,4 +875,5 @@ if __name__ == "__main__":
     MONO = elegir_fuente_mono(root)
     app = CasinoMultiplayer(root)
     root.mainloop()
+
 
