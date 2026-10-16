@@ -1,3 +1,4 @@
+import tkinter as tk
 import random
 
 PALOS = ["♠", "♥", "♦", "♣"]      #son los 4 palos de la baraja. Es un dato fijo.
@@ -99,4 +100,40 @@ def evaluar_mano(mano):
 # el for con .items() itera sobre los pares clave-valor del diccionario conteo, donde valor es la clave (el valor de la carta) y veces es el valor (el número de veces que aparece esa carta en la mano). Si encuentra una carta que aparece exactamente 2 veces y su valor es mayor o igual a 11 (J, Q, K o A), devuelve "Pareja". Si no se cumple ninguna de las condiciones anteriores, devuelve "None".
 #return solo llega a la linea sin ninguna condicion anterior devolvio algo
 #la cadena puede terminar antes de llegar a la linea final, si alguna condicion se cumple y devuelve algo. Si ninguna condicion se cumple, llega a la linea final y devuelve "None".
+
+
+class VideoPoker(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+
+        titulo = tk.Label(self, text="Video Poker", font=("Arial", 24, "bold"))
+        titulo.pack(pady=10)
+
+        self.lbl_cartas = tk.Label(self, text="", font=("Arial", 28))
+        self.lbl_cartas.pack(pady=10)
+
+        self.lbl_resultado = tk.Label(self, text="Presiona 'Repartir' para jugar", font=("Arial", 16))
+        self.lbl_resultado.pack(pady=5)
+
+        boton = tk.Button(self, text="Repartir", font=("Arial", 14), command=self.repartir)
+        boton.pack(pady=10)
+
+    def repartir(self):
+        mazo = Mazo()
+        mano = []
+        for _ in range(5):
+            mano.append(mazo.sacar())
+        self.lbl_cartas.config(text=" ".join(str(carta) for carta in mano))
+        resultado = evaluar_mano(mano)
+        if resultado == "None":
+            self.lbl_resultado.config(text="Sin premio")
+        else:
+            self.lbl_resultado.config(text=resultado)
+
+if __name__ == "__main__":
+    ventana = tk.Tk()
+    ventana.title("Video Poker")
+    VideoPoker(ventana).pack(padx=20, pady=20)
+    ventana.mainloop()
+
 
