@@ -1,4 +1,4 @@
-Menu · PY
+
 # MENÚ PRINCIPA una sola ventana desde donde se escoge cada juego.
 # Para agregar un juego: importarlo y ponerlo en JUEGOS.
  
