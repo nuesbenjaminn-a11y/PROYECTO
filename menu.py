@@ -4,13 +4,21 @@
  
 import tkinter as tk
 from video_poker import VideoPoker   
-from cara_o_cruz import CaraOCruz    # NUEVO es cara o cruz de dennys
+from cara_o_cruz import CaraOCruz
+from pink_jackpot.py import pinkjackpot  
+from ariana_game.py import arianagame
+
+# NUEVO es cara o cruz de dennys
 # from ruleta import Ruleta          # ejemplo para los demás juegos
 import estilos                       # colores y fuentes
  
 JUEGOS = [                           # (texto del botón, clase sin paréntesis)
     ("Video Poker", VideoPoker),
-    ("Cara o Cruz", CaraOCruz),      # esto se agrega en cada juego que se vaya agregando
+    ("Cara o Cruz", CaraOCruz), 
+    ("pink jackpot", pinkjackpot),
+    ("ariana game", arianagame),
+ 
+ # esto se agrega en cada juego que se vaya agregando
     # ("Ruleta", Ruleta),
 ]
  
