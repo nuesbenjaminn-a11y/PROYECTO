@@ -5,8 +5,8 @@
 import tkinter as tk
 from video_poker import VideoPoker   
 from cara_o_cruz import CaraOCruz
-from pink_jackpot.py import pinkjackpot  
-from ariana_game.py import arianagame
+from pink_jackpot import pinkjackpot 
+from ariana_game import arianagame
 
 # NUEVO es cara o cruz de dennys
 # from ruleta import Ruleta          # ejemplo para los demás juegos
