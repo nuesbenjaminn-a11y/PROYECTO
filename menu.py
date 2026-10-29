@@ -15,8 +15,8 @@ import estilos                       # colores y fuentes
 JUEGOS = [                           # (texto del botón, clase sin paréntesis)
     ("Video Poker", VideoPoker),
     ("Cara o Cruz", CaraOCruz), 
-    ("casino adivina", casinoadivina),
-    ("ariana game", arianagame),
+    ("casino adivina", CasinoAdivina),
+    ("ariana game", ArianaGame),
  
  # esto se agrega en cada juego que se vaya agregando
     # ("Ruleta", Ruleta),
