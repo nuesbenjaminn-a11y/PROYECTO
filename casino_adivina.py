@@ -1,19 +1,9 @@
 """
-Adivina el Número - versión CASINO
-===================================
-- GUI hecha con Tkinter (mismos colores rosado/lila de antes).
-- El jugador empieza con 100 fichas y apuesta en cada ronda.
-- Tiene un número limitado de intentos para adivinar (según la dificultad).
-- Mientras menos intentos use, más gana:
-      premio = apuesta x (2 + intentos_que_le_sobraron // 2)
-- Si se queda sin intentos, pierde la apuesta.
-- Se puede pedir una pista (par/impar) que cuesta 5 fichas.
-- Al retirarse (o quedarse sin fichas) el puntaje se guarda en un JSON.
-- El ranking (Top 10, por fichas) se ordena con un algoritmo propio
-  (Insertion Sort), sin usar sorted() ni list.sort().
+Juego Adivina el Número.
 
-Se usa desde el menú principal (menu.py): la clase JuegoAdivinanza
-hereda de tk.Frame y recibe (parent, volver_menu).
+El jugador inicia con 100 fichas y puede apostar
+en cada ronda. Los puntajes se guardan en un archivo
+JSON y el ranking se ordena usando Insertion Sort.
 """
 
 import tkinter as tk
@@ -347,6 +337,8 @@ class JuegoAdivinanza(tk.Frame):
             self.label_feedback.config(text="Las pistas se piden durante una ronda", fg=COLOR_ALERTA)
             return
         if self.saldo < COSTO_PISTA:
+
+
             messagebox.showwarning("Fichas insuficientes",
                                    f"Una pista cuesta {COSTO_PISTA} fichas.")
             return
