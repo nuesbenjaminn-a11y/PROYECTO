@@ -53,12 +53,13 @@ def guardar_puntaje(nombre, racha):          # se queda afuera: no usa widgets
 
     messagebox.showinfo("Guardado", f"Puntaje de {racha} guardado correctamente.")
 
+#la clase sirve para encapsular todo el juego de cara o cruz en un solo objeto, permitiendo que el menú controle su visibilidad y comportamiento.
 
 class CaraOCruz(tk.Frame):                   # el juego es un Frame (plantilla del README)
     def __init__(self, master=None):
         super().__init__(master)
         self.racha_actual = 0                # antes era variable global
-
+#el self es para referirse a la instancia actual de la clase CaraOCruz. funciona como un "puntero" a la propia ventana del juego.
         # --- Configuración de la Interfaz ---
         marco_nombre = tk.Frame(self)
         marco_nombre.pack(pady=15)

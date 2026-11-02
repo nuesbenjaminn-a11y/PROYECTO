@@ -27,8 +27,8 @@ except ModuleNotFoundError as error:
     COLOR_FONDO = "#101820"
     COLOR_PANEL = "#1c2a35"
     COLOR_PANEL_2 = "#263845"
-    COLOR_TEXTO = "#ffffff"
-    COLOR_TEXTO_SUAVE = "#b0bec5"
+    COLOR_TEXTO = "#000000"
+    COLOR_TEXTO_SUAVE = "#094ABA"
     COLOR_ACENTO, COLOR_ACENTO_HOVER = "#00bcd4", "#0097a7"
     COLOR_EXITO, COLOR_EXITO_HOVER = "#2e7d32", "#1b5e20"
     COLOR_ALERTA, COLOR_ALERTA_HOVER = "#c62828", "#8e0000"
@@ -148,7 +148,8 @@ class CasinoAdivina(tk.Frame):
     # ---------------- construcción de la interfaz ----------------
     def _crear_widgets(self):
         # ---- Encabezado con luces de casino ----
-        LetreroLuces(self, 480, 70, "🎰 CASINO ADIVINA 🎰", 18).pack()
+        #el letrero ahora es self 30 2 en vez de 480 70
+        LetreroLuces(self, 30, 2, "🎰 CASINO ADIVINA 🎰", 18).pack() #EL SELF, 30, 2 SIRVE PARA POSICIONAR EL LETRERO EN LA VENTANA PRINCIPAL
 
         # ---- Panel principal ----
         panel = tk.Frame(self, bg=COLOR_FONDO)
@@ -263,17 +264,12 @@ class CasinoAdivina(tk.Frame):
             frame_botones, COLOR_INFO, COLOR_INFO_HOVER,
             text="💰 Retirarme", command=self._retirarse
         ).grid(row=1, column=1, sticky="ew", padx=(5, 0), pady=4)
-
-        BotonEstilizado(
-            frame_botones, COLOR_ALERTA, COLOR_ALERTA_HOVER,
-            text="🚪 Volver al menú", command=self.volver_menu
-        ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=4)
-        if self.volver_menu is None:
+# aqui existia un boton volver al menu repetido y quedo ya solo con el if
+        if self.volver_menu is not None:
             BotonEstilizado(
                 frame_botones, COLOR_ALERTA, COLOR_ALERTA_HOVER,
                 text="🚪 Volver al menú", command=self.volver_menu
             ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=4)
-
     # ---------------- lógica del juego ----------------
     def _actualizar_saldo(self):
         self.label_saldo.config(text=f"🪙 Fichas: {self.saldo}")
@@ -463,10 +459,10 @@ class CasinoAdivina(tk.Frame):
 # -------------------------------------------------------------------
 if __name__ == "__main__":
     ventana = tk.Tk()
+    #antes no hacia match con el nombre tenia juego adivina -> ahora se usa CasinoAdivina para que coincida con el nombre de la clase.
     ventana.title("🎰 Casino Adivina")
     ventana.geometry("480x760")
     ventana.resizable(False, False)
-    juego = JuegoAdivinanza(ventana, volver_menu=ventana.destroy)
+    juego = CasinoAdivina(ventana, volver_menu=ventana.destroy)
     juego.pack(fill="both", expand=True)
     ventana.mainloop()
-

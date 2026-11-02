@@ -5,7 +5,7 @@
 import tkinter as tk
 from video_poker import VideoPoker   
 from cara_o_cruz import CaraOCruz
-from casino_adivina import JuegoAdivinanza
+from casino_adivina import CasinoAdivina
 from ariana_game import ArianaGame
 
 # NUEVO es cara o cruz de dennys
@@ -15,7 +15,7 @@ import estilos                       # colores y fuentes
 JUEGOS = [                           # (texto del botón, clase sin paréntesis)
     ("Video Poker", VideoPoker),
     ("Cara o Cruz", CaraOCruz), 
-    ("Casino Adivina", JuegoAdivinanza),
+    ("Casino Adivina", CasinoAdivina),
     ("Ariana Game", ArianaGame),
  
  # esto se agrega en cada juego que se vaya agregando

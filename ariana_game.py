@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import messagebox, ttk
 import random
@@ -8,7 +7,7 @@ import os
 # ==========================================
 # 1. CONFIGURACIÓN Y VARIABLES GLOBALES
 # ==========================================
-ARCHIVO_RANKING = "ranking.json"
+ARCHIVO_RANKING = "ranking_ariana.json"   # archivo propio: no compartir con Cara o Cruz
 RANGO_MIN = 1
 RANGO_MAX = 100
 MAX_INTENTOS = 10
@@ -50,12 +49,11 @@ def ordenar_ranking_burbuja(lista):
 # ==========================================
 # 4. INTERFAZ GRÁFICA (TKINTER)
 # ==========================================
-class ArianaGame:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Ariana Game - Ranking Top 10")
-        self.root.geometry("500x600")
-        self.root.resizable(False, False)
+class ArianaGame(tk.Frame):                  # el juego es un Frame (plantilla del README)
+    def __init__(self, master=None):
+        super().__init__(master)
+        # title(), geometry() y resizable() se movieron al final del archivo:
+        # solo la ventana principal (tk.Tk) puede tener título y tamaño.
 
         # Variables del juego
         self.numero_secreto = 0
@@ -69,7 +67,7 @@ class ArianaGame:
 
     def crear_widgets(self):
         # --- Sección de Inicio ---
-        frame_inicio = tk.LabelFrame(self.root, text="Registro de Jugador", padx=10, pady=10)
+        frame_inicio = tk.LabelFrame(self, text="Registro de Jugador", padx=10, pady=10)
         frame_inicio.pack(pady=10, padx=10, fill="x")
 
         tk.Label(frame_inicio, text="Nombre:").pack(side="left")
@@ -80,7 +78,7 @@ class ArianaGame:
         self.btn_iniciar.pack(side="left", padx=5)
 
         # --- Sección de Juego ---
-        frame_juego = tk.LabelFrame(self.root, text="Juego", padx=10, pady=10)
+        frame_juego = tk.LabelFrame(self, text="Juego", padx=10, pady=10)
         frame_juego.pack(pady=10, padx=10, fill="x")
 
         self.lbl_mensaje = tk.Label(frame_juego, text="Ingresa tu nombre y presiona Iniciar", font=("Arial", 12))
@@ -98,7 +96,7 @@ class ArianaGame:
         self.btn_probar.pack(pady=10)
 
         # --- Sección de Ranking ---
-        frame_ranking = tk.LabelFrame(self.root, text="🏆 Top 10 Mejores Jugadores", padx=10, pady=10)
+        frame_ranking = tk.LabelFrame(self, text="🏆 Top 10 Mejores Jugadores", padx=10, pady=10)
         frame_ranking.pack(pady=10, padx=10, fill="both", expand=True)
 
         # Tabla (Treeview)
@@ -233,5 +231,8 @@ class ArianaGame:
 # ==========================================
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ArianaGame(root)
+    root.title("Ariana Game - Ranking Top 10")
+    root.geometry("500x600")
+    root.resizable(False, False)
+    ArianaGame(root).pack(fill="both", expand=True)
     root.mainloop()
