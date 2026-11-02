@@ -70,9 +70,7 @@ def agregar_puntaje(nombre, fichas, ganadas, dificultad):
     guardar_puntajes(puntajes)
 
 
-# -------------------------------------------------------------------
-# ALGORITMO DE ORDENAMIENTO PROPIO: Insertion Sort
-# -------------------------------------------------------------------
+# Ordenamiento del ranking usando Insertion Sort
 def insertion_sort_por_fichas(lista):
     """Ordena de MAYOR a MENOR cantidad de fichas (Insertion Sort manual)."""
     datos = lista.copy()
@@ -332,13 +330,11 @@ class JuegoAdivinanza(tk.Frame):
             self._guardar_y_reiniciar()
 
     def _dar_pista(self):
-        """Pista: dice si el número es par o impar. Cuesta fichas."""
+    # Muestra si el número es par o impar
         if not self.ronda_activa:
             self.label_feedback.config(text="Las pistas se piden durante una ronda", fg=COLOR_ALERTA)
             return
         if self.saldo < COSTO_PISTA:
-
-
             messagebox.showwarning("Fichas insuficientes",
                                    f"Una pista cuesta {COSTO_PISTA} fichas.")
             return
@@ -436,6 +432,5 @@ if __name__ == "__main__":
     ventana.resizable(False, False)
     juego = JuegoAdivinanza(ventana, volver_menu=ventana.destroy)
     juego.pack(fill="both", expand=True)
-    ventana.mainloop()
-
+    ventana.mainloop()g
 
