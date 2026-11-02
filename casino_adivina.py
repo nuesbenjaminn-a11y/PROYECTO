@@ -13,7 +13,7 @@ import os
 import random
 from datetime import datetime
 
-from estilo_casino import (
+from casino_adivina import (
     COLOR_FONDO, COLOR_PANEL, COLOR_PANEL_2, COLOR_TEXTO, COLOR_TEXTO_SUAVE,
     COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_EXITO, COLOR_EXITO_HOVER,
     COLOR_ALERTA, COLOR_ALERTA_HOVER, COLOR_INFO, COLOR_INFO_HOVER,
