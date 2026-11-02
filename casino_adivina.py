@@ -13,12 +13,43 @@ import os
 import random
 from datetime import datetime
 
-from estilo_casino import (
-    COLOR_FONDO, COLOR_PANEL, COLOR_PANEL_2, COLOR_TEXTO, COLOR_TEXTO_SUAVE,
-    COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_EXITO, COLOR_EXITO_HOVER,
-    COLOR_ALERTA, COLOR_ALERTA_HOVER, COLOR_INFO, COLOR_INFO_HOVER,
-    COLOR_ORO, COLOR_ORO_HOVER, BotonEstilizado, LetreroLuces,
-)
+try:
+    from estilo_casino import (  # pyright: ignore[reportMissingImports]
+        COLOR_FONDO, COLOR_PANEL, COLOR_PANEL_2, COLOR_TEXTO, COLOR_TEXTO_SUAVE,
+        COLOR_ACENTO, COLOR_ACENTO_HOVER, COLOR_EXITO, COLOR_EXITO_HOVER,
+        COLOR_ALERTA, COLOR_ALERTA_HOVER, COLOR_INFO, COLOR_INFO_HOVER,
+        COLOR_ORO, COLOR_ORO_HOVER, BotonEstilizado, LetreroLuces,
+    )
+except ModuleNotFoundError as error:
+    if error.name != "estilo_casino":
+        raise
+
+    COLOR_FONDO = "#101820"
+    COLOR_PANEL = "#1c2a35"
+    COLOR_PANEL_2 = "#263845"
+    COLOR_TEXTO = "#ffffff"
+    COLOR_TEXTO_SUAVE = "#b0bec5"
+    COLOR_ACENTO, COLOR_ACENTO_HOVER = "#00bcd4", "#0097a7"
+    COLOR_EXITO, COLOR_EXITO_HOVER = "#2e7d32", "#1b5e20"
+    COLOR_ALERTA, COLOR_ALERTA_HOVER = "#c62828", "#8e0000"
+    COLOR_INFO, COLOR_INFO_HOVER = "#1565c0", "#0d47a1"
+    COLOR_ORO, COLOR_ORO_HOVER = "#f9a825", "#f57f17"
+
+    class BotonEstilizado(tk.Button):
+        def __init__(self, parent, color, color_hover, **kwargs):
+            super().__init__(
+                parent, bg=color, fg=COLOR_TEXTO, activebackground=color_hover,
+                activeforeground=COLOR_TEXTO, relief="flat", bd=0,
+                font=("Helvetica", 10, "bold"), cursor="hand2", **kwargs
+            )
+
+    class LetreroLuces(tk.Label):
+        def __init__(self, parent, width, height, texto, tamano):
+            super().__init__(
+                parent, text=texto, width=width, height=height,
+                font=("Helvetica", tamano, "bold"), bg=COLOR_FONDO,
+                fg=COLOR_ORO, padx=8, pady=8
+            )
 
 # -------------------------------------------------------------------
 # Configuración general
@@ -92,8 +123,8 @@ def obtener_top_n(n=TOP_N):
 # -------------------------------------------------------------------
 # Interfaz gráfica principal
 # -------------------------------------------------------------------
-class JuegoAdivinanza(tk.Frame):
-    def __init__(self, parent, volver_menu):
+class CasinoAdivina(tk.Frame):
+    def __init__(self, parent=None, volver_menu=None):
         super().__init__(parent, bg=COLOR_FONDO)
         self.volver_menu = volver_menu
 
@@ -237,6 +268,11 @@ class JuegoAdivinanza(tk.Frame):
             frame_botones, COLOR_ALERTA, COLOR_ALERTA_HOVER,
             text="🚪 Volver al menú", command=self.volver_menu
         ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=4)
+        if self.volver_menu is None:
+            BotonEstilizado(
+                frame_botones, COLOR_ALERTA, COLOR_ALERTA_HOVER,
+                text="🚪 Volver al menú", command=self.volver_menu
+            ).grid(row=2, column=0, columnspan=2, sticky="ew", pady=4)
 
     # ---------------- lógica del juego ----------------
     def _actualizar_saldo(self):
@@ -432,5 +468,5 @@ if __name__ == "__main__":
     ventana.resizable(False, False)
     juego = JuegoAdivinanza(ventana, volver_menu=ventana.destroy)
     juego.pack(fill="both", expand=True)
-    ventana.mainloop()g
+    ventana.mainloop()
 

@@ -50,10 +50,10 @@ def ordenar_ranking_burbuja(lista):
 # ==========================================
 # 4. INTERFAZ GRÁFICA (TKINTER)
 # ==========================================
-class JuegoAdivinanza:
-    def _init_(self, root):
+class ArianaGame:
+    def __init__(self, root):
         self.root = root
-        self.root.title("Adivina el Número - Ranking Top 10")
+        self.root.title("Ariana Game - Ranking Top 10")
         self.root.geometry("500x600")
         self.root.resizable(False, False)
 
@@ -231,7 +231,7 @@ class JuegoAdivinanza:
 # ==========================================
 # 5. PUNTO DE ENTRADA
 # ==========================================
-if _name_ == "_main_":
+if __name__ == "__main__":
     root = tk.Tk()
-    app = JuegoAdivinanza(root)
+    app = ArianaGame(root)
     root.mainloop()
